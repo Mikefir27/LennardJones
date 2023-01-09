@@ -10,14 +10,14 @@
        !
        !
        INTEGER(KIND=4) :: A, N, k, I, J, B, M, X, modx, U, Nacc, UU,&
-       unitn
+       unitn, W, Q, Tr, Y, indice
        REAL(KIND=8) :: dV, Temp, alp, L, L2, rfk,rmk, SUMdV, mm, f, fm,&
-       NOTACC, ACC, alphaprop, dr, rmax, ri, r, dens
+       NOTACC, ACC, alphaprop, dr, rmax, ri, r, dens, rij
        LOGICAL :: accept
        REAL(KIND=8), allocatable :: coor(:,:), mcoor(:,:), fcoor(:,:), &
-       vrMIm(:), vrMIf(:), vecr(:),  g(:), vecfkdist(:)
+       vrMIm(:), vrMIf(:), vecr(:),  g(:), vecfkdist(:), alldist(:)
        INTEGER(KIND=4), allocatable :: Ni(:)
-       REAL(KIND=8) :: point(3), pointkf(3), pointkm(3)
+       REAL(KIND=8) :: point(3), pointkf(3), pointkm(3), ivec(3), jvec(3)
        CHARACTER(14) :: filename, cNacc
        !
        WRITE(6,*) "This is the main program. The first step is to gene&
@@ -38,7 +38,7 @@
        !
        !
        !
-       WRITE(6,*) "Select number of atoms"
+       WRITE(6,*) "Select number of atoms!"
        READ(5,*) N
        !
        WRITE(6,*) "Select length of box"
@@ -87,7 +87,8 @@
        !
        WRITE(6,*) "EQUILIBRATION PART"
        !DO X = 1,5
-       DO WHILE (X .LE. 2000)
+       DO Y = 1, 2000*N
+       !DO WHILE (X .LE. 2000)
 !          modx = mod(X, 5)
           dV = 0
           SUMdV = 0
@@ -109,20 +110,14 @@
           ENDDO
           dV = 4 * SUMdv
           IF (dV .LE. 0) then
-             X = X + 1
+            accept = .TRUE.
           ELSE
              call alpha(dV, Temp, alp)
              call acceptornot(alp, accept)
-             IF (accept .EQV. .TRUE.) then
-                continue
-             ELSE
-                cycle
-             ENDIF
-             X = X + 1
           ENDIF
-          DO J = 1, 3
-             mcoor(J,k) = fcoor(J,k)
-          ENDDO
+          IF (accept .EQV. .TRUE.) then
+            mcoor = fcoor
+          ENDIF
        ENDDO
        !
        !
@@ -142,8 +137,11 @@
        rmax = 4.0
        dr = 0.01
        !
+       !
+       Tr = ((N - 1)*N)/2
        U = INT(rmax / dr)
        Allocate (Ni(U), vecr(U))
+       Allocate (alldist(Tr))
        vecr = 0.0
        Ni = 0
        !CREATE vecr
@@ -157,12 +155,12 @@
        unitn = 15
        !
        DO X = 1, 500*N
-          modx = mod(X, 5)
+          modx = mod(X, N)
           ri = 0.0
           dV = 0
           SUMdV = 0
           !WRITE(6,*) "----------------------------------------------"
-          WRITE(6,*) "Cycle ", X
+          !WRITE(6,*) "Cycle ", X
           call ranmove(N, L, mcoor, fcoor, k)
           !WRITE(6,*) "k = ", k
           DO I = 1, N
@@ -183,50 +181,59 @@
           ENDDO
           dV = 4 * SUMdv
          ! WRITE(6,*) "The difference of energy is: ", dV, "kj/mol)"
-!
+
           IF (dV .LE. 0) then
              accept = .TRUE.
-             ACC = ACC + 1
-             mcoor = fcoor
           ELSE
+             call alpha(dV, Temp, alp)
         !     WRITE(6,*) "This dV is positive"
              call alpha(dV, Temp, alp)
         !     WRITE(6,*) "alpha is :", alp
              call acceptornot(alp, accept)
-             IF (accept .EQV. .TRUE.) then
-                ACC = ACC + 1
-                mcoor = fcoor
-             ELSE
-                NOTACC = NOTACC + 1
-             ENDIF
           ENDIF
-!
+          !
+          IF (accept .EQV. .TRUE.) then
+             ACC = ACC + 1
+             mcoor = fcoor
+          ELSE
+             NOTACC = NOTACC + 1
+          ENDIF
        !      WRITE(6,*) "Change Accepted!"
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 !This part creates the histogram by adding 1 to every Ni in the interval of bond lengths defined in vecr
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
           IF (modx .EQ. 0) then
+             !WRITE(6,*) "In this cycle g is calculated"
+             W = 0
              DO I = 1, N-1
-        !        WRITE(6,*) "distance between", k, "and", I, "=",&
-      !vecfkdist(I)
-                DO J = 1, U
-            !       WRITE(6,*) "histogram",vecr(J), "---", (vecr(J) + dr)
-                   IF ((vecfkdist(I) .GE. vecr(J)).and.&
-      (vecfkdist(I) .LT.(vecr(J)+dr))) then
-         !             WRITE(6,*) "rfk lies between",vecr(J),&
-      !"and", vecr(J)+dr
-       !            Nacc = Nacc + 1
-                      Ni(J) = Ni(J) + 1
-                   ELSE
-                      continue
-                   ENDIF
+             DO J = I+1, N
+                W = W + 1
+                DO Q = 1, 3 
+                   ivec(Q) = mcoor(Q, I)
+                   jvec(Q) = mcoor(Q, J)
                 ENDDO
+                call VECTDISTV2(ivec, jvec, rij, L)
+                   IF ((rij .GE. 0.0) .and.&
+   (rij .LT. 4.0)) then
+                      indice = INT((rij/dr)+1)
+                      Ni(indice) = Ni(indice) + 1     
+                     ! WRITE(6,*) "rij = ", rij, "INDEX", indice           
+                   ENDIF
+              !WRITE(6,*) "rij is", rij
+ !               DO Y = 1, U
+ !                 IF ((rij .GE. vecr(Y)) .and.&
+ !  (rij .LT. (vecr(Y)+dr))) then
+ !                    Ni(Y) = Ni(Y) + 1
+ !                  ENDIF
+ !               ENDDO
+             ENDDO 
              ENDDO
              Nacc = Nacc + 1
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-             OPEN (unit=14, file="RaddistcdeltVoord.xyz", action=&
-      "write")
+             OPEN (unit=14, file="Raddistcoord.xyz", action=&
+    "write")
              WRITE(14,*) N
              WRITE(14,*) "Coordinates for radial dist.", Nacc
              DO J = 1, N
@@ -234,13 +241,12 @@
              ENDDO
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-          ELSE
-             continue
           ENDIF
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-          WRITE(6,*) "----------------------------------------------"
+         ! WRITE(6,*) "----------------------------------------------"
        ENDDO
        !
        !
@@ -264,13 +270,13 @@
        !WRITE(6,*) "HOLA"
       ! WRITE(6,*) "r", "g(ri)"
        DO I = 1, U
-          WRITE(6, *) Ni(I)
+          WRITE(6, *) "r = ", vecr(I), "Ni = ", Ni(I), "g = ", g(I)
        ENDDO
       !
        OPEN (unit=13, file="radialdist.xyz", action="write")
        WRITE(13,'(A, 6X, A)') "r", "g(ri)"
        DO I = 1, U
-          WRITE(13, '(F1.2, 6X, F4.4)') vecr(I), g(I)
+          WRITE(13, '(F4.2, 6X, F8.4)') vecr(I), g(I)
        ENDDO
        !
        !WRITE IN AN XYZ DOCUMENT

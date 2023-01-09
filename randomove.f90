@@ -75,16 +75,16 @@
        DO I = 1, 3
           fcoor(I, k) = mcoor(I, k) + wi(I)
           IF (fcoor(I, k) .GE. L) then
-             WRITE(6,*) "atom off limits"
+             !WRITE(6,*) "atom off limits"
              fcoor(I, k) = fcoor(I, k) - L
           ELSE IF (fcoor(I, k) .LT. 0.0) then
-             WRITE(6,*) "atom off limits"
+            ! WRITE(6,*) "atom off limits"
              fcoor(I, k) = fcoor(I, k) + L
           ENDIF
        ENDDO
        !
-       WRITE(6,*) "MOVED ATOM:", k
-       WRITE(6,*) "MOVED IT TO:", (fcoor(I,k),I = 1,3)
+      ! WRITE(6,*) "MOVED ATOM:", k
+       !WRITE(6,*) "MOVED IT TO:", (fcoor(I,k),I = 1,3)
        !
        ENDSUBROUTINE ranmove
        !
