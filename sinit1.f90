@@ -75,7 +75,7 @@
       ENDDO
       !
       !
-      CLOSE(9)
+      !CLOSE(9)
       !
       END SUBROUTINE random1
       !

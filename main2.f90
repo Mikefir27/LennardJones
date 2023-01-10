@@ -59,7 +59,17 @@
        Allocate (fcoor(3,N))
        mcoor = TRANSPOSE(coor)
        !
-       !
+       WRITE(9,*) N
+       WRITE(9,*) "Transpose "
+       DO I = 1,N
+         WRITE(9,*) "Ar", (mcoor(J,I),J=1,3)
+       ENDDO
+!
+       WRITE(9,*) N
+       WRITE(9,*) "INITIAL SYSTEM again"
+       DO I = 1,N
+          WRITE(9,*) "Ar", (coor(I,J),J=1,3)
+       ENDDO
        !
        !EQUILIBRATION PART
        !
@@ -100,8 +110,13 @@
                    pointkf(J) = fcoor(J,k)
                    point(J) = mcoor(J,I)
                 ENDDO
+       !         WRITE(6,*) "Atom", I
+                call VECTDIST(point, pointkf, rfk)
+      !          WRITE(6,*) "rfk before : ", rfk
                 call VECTDISTV2(point, pointkf, rfk, L)
+       !         WRITE(6,*) "rfk after: ", rfk
                 call VECTDISTV2(point, pointkm, rmk, L)
+       !         WRITE(6,*) "______________________________________"
                 call deltV(rmk, rfk, fm)
                 SUMdv = SUMdv + fm
              ELSE
@@ -171,16 +186,20 @@
                    point(J) = mcoor(J,I)
                 ENDDO
                 call VECTDISTV2(point, pointkf, rfk, L)
-                vecfkdist(I) = rfk
                 call VECTDISTV2(point, pointkm, rmk, L)
+                IF (isnan(rfk)) print*, "atom ", I, "for k = ", k, &
+                "coord f =", point, "coord k =", pointkf
                 call deltV(rmk, rfk, fm)
+                WRITE(6,*) "Atom", I
+                WRITE(6,*) "rfk : ", rfk, "rmk : ", rmk
+                WRITE(6,*) "______________________________________"
                 SUMdv = SUMdv + fm
              ELSE
                 cycle
              ENDIF
           ENDDO
           dV = 4 * SUMdv
-         ! WRITE(6,*) "The difference of energy is: ", dV, "kj/mol)"
+          WRITE(6,*) "The difference of energy is: ", dV, "kj/mol)"
 
           IF (dV .LE. 0) then
              accept = .TRUE.

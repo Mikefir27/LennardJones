@@ -13,6 +13,7 @@
        x21 = v2(1)-v1(1)
        y21 = v2(2)-v1(2)
        z21 = v2(3)-v1(3)
+       !WRITE(6,*) "Comp. x =", x21, "y = ", y21, "z = ", z21
        r12 = DSQRT(x21**2 + y21**2 + z21**2)
        END SUBROUTINE VECTDIST
        !
@@ -33,6 +34,7 @@
           ENDIF
        ENDIF
        ENDDO
+       !WRITE(6,*) "Comp. x =", dr21(1), "y = ", dr21(2), "z = ", dr21(3)
        r12 = DSQRT(dr21(1)**2 + dr21(2)**2 + dr21(3)**2)
        ENDSUBROUTINE VECTDISTV2
        !
