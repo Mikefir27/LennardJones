@@ -187,8 +187,8 @@
                 ENDDO
                 call VECTDISTV2(point, pointkf, rfk, L)
                 call VECTDISTV2(point, pointkm, rmk, L)
-                IF (isnan(rfk)) print*, "atom ", I, "for k = ", k, &
-                "coord f =", point, "coord k =", pointkf
+               ! IF (isnan(rfk)) print*, "atom ", I, "for k = ", k, &
+               ! "coord f =", point, "coord k =", pointkf
                 call deltV(rmk, rfk, fm)
                 WRITE(6,*) "Atom", I
                 WRITE(6,*) "rfk : ", rfk, "rmk : ", rmk
